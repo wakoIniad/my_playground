@@ -1,20 +1,8 @@
-/**
- * 
- * 問題点リスト
- * 全体的な問題点：
- * エラーを出力する関数が未定義
- * <重大>関数の引数の読み取り方
- * 解決策：後々実装予定のリスト型と名前型を引数として'演算'した場合に、
- * その名前の関数に指定された引数（リスト）を渡して実行する
- * > (a,b,c)みたいな書き方に対応してないせいで、関数だけでなくif文やwhile文にまで影響が出ている
- * 
- * 個別の問題点：
- * prob3. trueやfalseなどを変数へ統合するかどうか
- */
 class Executer {
     constructor(process) {
         this.process = process;
-        
+        this.readLineAt = 0;
+        this.readWordAt = 0;
         this .valueNames = {
             'true':true,'false':false
         }
@@ -54,8 +42,8 @@ class Executer {
             },
             '=': {
                 len:2, exe:(a,b)=> {
-                    this.data[a] = this.val_parse__(b);
-                    return this.val_parse__(b);
+                    this.data[a] = b;
+                    return b;
                 }
             },
             'if': {
@@ -94,6 +82,16 @@ class Executer {
 
         this .data = {};
     }
+
+    displayExcuterError(code,v) {
+        const msg = [
+            v + ' is not defined'
+        ]
+        const error = new Error(msg[code])
+        error.name = 'Executer Error'
+        throw error
+    }
+
     isNumber(text) {
         let textArr = [...text];
         let position = 'first'
@@ -143,7 +141,9 @@ class Executer {
         } else if(this.isNumber(text)) {
             return (+text);
         } else if(this.isVariable(text)) {
-            return this.data[text]
+            const val = this.data[text];
+            if(val === undefined)this.displayExcuterError(0,text)
+            return this.val_parse__(val);
         }
     }
 
@@ -153,6 +153,7 @@ class Executer {
         for(const i in process) {
             const line = process[i];
             result = this.executer__(line)
+            this.readLineAt = i
         }
         return result;
     }
@@ -160,6 +161,7 @@ class Executer {
     executer__(arr) {
         const stack = [];
         for(const i in arr) {
+            this.readWordAt = i
             const e = arr[i];
             if(e in this.excutableOperator) {
                 const operatorClass = this.excutableOperator[e]
@@ -524,23 +526,6 @@ class Parser {
  * \\\\はjsによって\\になり、
  * 上のプログラムではさらに\になる。
 */
-
-function test() {
-    const test = new Parser(`
-    # 1から100までの総和を求めるスクリプト
-    i = 0;
-    b = 0;
-    {   
-        i = i + 1;
-        b = b + i;
-        put ("now Count:"+i);
-    } while { !(i >= 100) };
-    put b;
-    `);
-    console.log(test.Parse())
-    const test2 = new Executer(test.parsed)
-    test2.Execute()
-}
 
 class CowaScript {
     constructor(script) {
