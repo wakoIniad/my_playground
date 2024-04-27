@@ -5,12 +5,21 @@
  * エラーを出力する関数が未定義
  * 
  * 個別の問題点：
- * trueやfalseなどの変数への統合の是非
+ * prob3. trueやfalseなどの変数への統合の是非
  */
+
+class Line {
+    constructor(text,ref) {
+        this.parsed = [];
+        this.ref = []
+    }
+
+}
 
 class Executer {
     constructor(rawText) {
         this .rawText = rawText
+        this .readAt = 0;
 
         /**
          * prob3
@@ -47,7 +56,8 @@ class Executer {
         }
         this .operatorOnParsing = {
             '(':[],
-            ')':[]
+            ')':[],
+            ';':[]
         }
         this .operatorTokens = [
             ...Object.keys(this.excutableOperator),
@@ -147,7 +157,10 @@ class Executer {
     }
 
     Execute() {
-        return this.executer__(this.parsed)
+        for(const i in this.parsed) {
+            const line = this.parsed[i];
+            console.log(this.executer__(line))
+        }
     }
 
     executer__(arr) {
@@ -167,7 +180,11 @@ class Executer {
     }
 
     Parse() {
-        return this.parsed = this.to_reversed_poland__(this.split__(this.rawText))
+        this.parsed = []
+        while(this.readAt < this.rawText.length) {
+            this.parsed.push(this.to_reversed_poland__(this.split__(this.rawText)))
+        }
+        return this.parsed;
     }
 
     split__(text) {
@@ -207,7 +224,7 @@ class Executer {
                 }
             } else {
                 regardAsSign = false;
-                //もし、すでにsignが検出されていたら
+                //もし、すでにsignが検出されていたら次に追加する
                 if(sign !== null) {
                     res_element = ( sign ? '+' : '-' ) + e;
                     sign = null;
@@ -218,6 +235,7 @@ class Executer {
         return result;
     }
 
+    /**テキストか配列 */
     splitter__(text) {
         const t = [...text];
         let arrTemp = [];
@@ -234,10 +252,8 @@ class Executer {
                 strTemp = ""
             }
         }
-
-        for (const i in t) {
-            const c = ""+t[i];
-            //console.log('0123456789'.includes(c) && c,mode,strTemp)
+        for(;this.readAt < this.rawText.length; this.readAt++) {
+            const c = ""+t[this.readAt];
             switch(c) {
                 case '\\':
                     if(ignoreFunctionalToken) {
@@ -266,6 +282,10 @@ class Executer {
                 case mode === 'string' && c:
                     strTemp += c;
                     break;
+                case ';':
+                    this.readAt++;
+                    pushToken()
+                    return arrTemp;
                 case ' ':
                     pushToken();
                     mode = null
@@ -319,14 +339,13 @@ class Executer {
                         strTemp += c;
                     }
 
-                    // #連続した演算子が入力された場合細切れにしていく
-                    //=すでにカットした部分は消す！
+                    // #連続して演算子が入力された場合、解釈できる最大長で細切れにしていく
                     if(this.operatorTokens.includes(strTemp)) {
                         //現時点のものがokなら保存しておく
                         opTemp = strTemp
                     } else {
                         //okじゃなくなった瞬間に以前に保存した
-                        //大丈夫なオペレータがあればそれをプッシュする
+                        //okなオペレータがあればそれをプッシュする
                         if(opTemp) {
                             //新しいパートを始める
                             strTemp = c;
@@ -339,8 +358,8 @@ class Executer {
                                 どこかにエラー処理作る**/
                                 /**
                                  * 注意：ここには、できるだけ演算子以外来ないようにする。
-                                 * 処理しきれなかったものをここに集めて、無理やり後から処理しようとすると
-                                 * おかしくなる
+                                 * 処理しきれなかったものをここに集めて、無理やり後から処理しようとするのは
+                                 * 無駄に複雑になるのでダメ
                                  */
                             }
                         } else {
@@ -362,6 +381,6 @@ class Executer {
  * 上のプログラムではさらに\になる。
 */
 
-const test = new Executer('1+1+1 * 4');
+const test = new Executer('1+1+1 * 4;1*3');
 test.Parse()
 console.log(test.Execute())

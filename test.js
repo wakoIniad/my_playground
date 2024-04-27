@@ -1,2 +1,3 @@
-const A = [1,2,3,4,5,6]
-console.log(A.slice(A.length-2),+'+1')
+for(var i = 0;i < 10;i++) {
+  console.log(i)  
+}
