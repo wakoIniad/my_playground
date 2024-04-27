@@ -22,7 +22,7 @@ put ("sum: " + b);
 独特な書き方
 
 - if,while文
-```
+```py
   {a > 1} if {put("a is larger than 1")}
   {i < 100} while {put(i)}
 ```
