@@ -12,12 +12,30 @@ class Executer {
     constructor(rawText) {
         this .rawText = rawText
         this .excutableOperator = {
-            '**':{priority:11},
-            '*':{priority:10},
-            '/':{priority:10},
-            '%':{priority:11},
-            '+':{priority:9},
-            '-':{priority:9},
+            '**':{  
+                priority:11,
+                len:2,exe:(a,b)=>a**b
+            },
+            '*':{
+                priority:10,
+                len:2,exe:(a,b)=>a*b
+            },
+            '/':{
+                priority:10,
+                len:2,exe:(a,b)=>a/b
+            },
+            '%':{
+                priority:11,
+                len:2,exe:(a,b)=>a%b
+            },
+            '+':{
+                priority:9,
+                len:2,exe:(a,b)=>a+b
+            },
+            '-':{
+                priority:9,
+                len:2,exe:(a,b)=>a-b
+            },
         }
         this .operatorOnParsing = {
             '(':[],
@@ -126,6 +144,7 @@ class Executer {
         let mode = null
         //英語復習メモ：前置詞の後にto不定詞は来ない
         let scheduledProcessOnSwitchingMode = () => {}
+        let ignoreFunctionalToken = false;
 
         function pushToken() {
             if(strTemp.length) {
@@ -138,7 +157,20 @@ class Executer {
             const c = ""+t[i];
             //console.log('0123456789'.includes(c) && c,mode,strTemp)
             switch(c) {
+                case '\\':
+                    if(ignoreFunctionalToken) {
+                        strTemp += c;
+                        ignoreFunctionalToken = false;
+                        break;
+                    }
+                    ignoreFunctionalToken = true;
+                    break;
                 case '"':
+                    if(ignoreFunctionalToken) {
+                        strTemp += c;
+                        ignoreFunctionalToken = false;
+                        break;
+                    }
                     if(mode === 'string') {
                       strTemp += c;
                       pushToken()
@@ -207,6 +239,11 @@ class Executer {
                             } else {
                                 /*prob2_1 パース終了時点で存在しない演算子がいないように
                                 どこかにエラー処理作る**/
+                                /**
+                                 * 注意：ここには、できるだけ演算子以外来ないようにする。
+                                 * 処理しきれなかったものをここに集めて、無理やり後から処理しようとすると
+                                 * おかしくなる
+                                 */
                             }
                         } else {
                             /*prob2_2 パース終了時点で存在しない演算子がいないように
@@ -222,6 +259,10 @@ class Executer {
     }
 }
 
-/** */
-const test = new Executer('(1 + 1)-4 * 2 **- 3');
+/** 注意：
+ * \\\\はjsによって\\になり、
+ * 上のプログラムではさらに\になる。
+*/
+
+const test = new Executer('(1 + 1)-4 * 2 **- 3 + "aaaa \\"bbb"');
 console.log(test.Parse())
