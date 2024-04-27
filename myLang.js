@@ -55,7 +55,9 @@ class Executer {
         ]
         this .splitted = [];
 
-        this.data = {};
+        this .parsed = [];
+
+        this .data = {};
     }
     to_reversed_poland__(arr) {
         let stack = [];
@@ -138,22 +140,25 @@ class Executer {
         } else if(text in this.valueNames){
             return this.valueNames[text];
         } else if(this.isNumber(text)) {
-            return +text;
+            return (+text);
         } else if(this.isVariable) {
             return this.data[text]
         }
     }
 
-    Execute(arr) {
+    Execute() {
+        return this.executer__(this.parsed)
+    }
+
+    executer__(arr) {
         const stack = [];
-        const result = [];
         for(const i in arr) {
             const e = arr[i];
             if(e in this.excutableOperator) {
                 const operatorClass = this.excutableOperator[e]
                 const requiredArgsLen = operatorClass.len;
-                const args = this.stack.splice(this.stack.length-requiredArgsLen)
-                stack.push(operatorClass.exe(args))
+                const args = stack.splice(stack.length-requiredArgsLen)
+                stack.push(operatorClass.exe(...args))
             } else {
                 stack.push(this.val_parse__(e))
             }
@@ -162,7 +167,7 @@ class Executer {
     }
 
     Parse() {
-        return this.to_reversed_poland__(this.split__(this.rawText))
+        return this.parsed = this.to_reversed_poland__(this.split__(this.rawText))
     }
 
     split__(text) {
@@ -357,5 +362,6 @@ class Executer {
  * 上のプログラムではさらに\になる。
 */
 
-const test = new Executer('true1+1 1 + 1');
-console.log(test.Parse())
+const test = new Executer('1+1+1 * 4');
+test.Parse()
+console.log(test.Execute())
