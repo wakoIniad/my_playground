@@ -3,14 +3,14 @@
  * 問題点リスト
  * 全体的な問題点：
  * エラーを出力する関数が未定義
- * <重大>関数の引数にょみ取り方
- * ：後々実装予定のリスト型と名前型を引数として'演算'した場合に、
+ * <重大>関数の引数の読み取り方
+ * 解決策：後々実装予定のリスト型と名前型を引数として'演算'した場合に、
  * その名前の関数に指定された引数（リスト）を渡して実行する
+ * > (a,b,c)みたいな書き方に対応してないせいで、関数だけでなくif文やwhile文にまで影響が出ている
  * 
  * 個別の問題点：
- * prob3. trueやfalseなどの変数への統合の是非
+ * prob3. trueやfalseなどを変数へ統合するかどうか
  */
-
 class Executer {
     constructor(process) {
         this.process = process;
@@ -38,7 +38,7 @@ class Executer {
                 len:2,exe:(a,b)=>this.val_parse__(a)-this.val_parse__(b)
             },
             '!': {
-                len:1,exe:(a,b)=>!this.val_parse__(a)
+                len:1,exe:(a)=>!this.val_parse__(a)
             },
             '>':{
                 len:2,exe:(a,b)=>this.val_parse__(a)>this.val_parse__(b)
@@ -77,7 +77,7 @@ class Executer {
             'put': {
                 len:1, exe:(a) => {
                     let res = this.val_parse__(a);
-                    console.log(res)
+                    console.log(JSON.stringify(res))
                     return res;
                 }
             }
@@ -133,7 +133,7 @@ class Executer {
     /**これは演算子の処理の中でのみ使う */
     val_parse__(text){
         if(text.startsWith('"') && text.endsWith('"')) {
-            return text.splice(1,text.length-1);
+            return text.slice(1,text.length-1);
         } else if(text.startsWith('{') && text.endsWith('}')){
             const parser = new Parser(text.slice(1,text.length-1))
             parser.Parse();
@@ -246,6 +246,10 @@ class Parser {
         this .data = {};
     }
 
+    set script(text) {
+        this.rawText = text
+    }
+
     isCharacterForName(c) {
         return 65 < c.charCodeAt() && 122 > c.charCodeAt() || '_$'.includes(c)
     }
@@ -293,7 +297,10 @@ class Parser {
     Parse() {
         this.parsed = []
         while(this.readAt < this.rawText.length) {
-            this.parsed.push(this.to_reversed_poland__(this.split__(this.rawText)))
+            const splitted = this.split__(this.rawText);
+            if(!splitted.length)continue
+            if(splitted[0][0] == '#')continue;
+            this.parsed.push(this.to_reversed_poland__(splitted));
         }
         return this.parsed;
     }
@@ -411,7 +418,14 @@ class Parser {
                     mode = 'block'
                     
                     break;
-                    
+                case '\n':
+                    if(ignoreFunctionalToken) {
+                        ignoreFunctionalToken = false;
+                        break;
+                    }
+                    this.readAt++;
+                    pushToken()
+                    return arrTemp;  
                 case ';':
                     this.readAt++;
                     pushToken()
@@ -511,7 +525,35 @@ class Parser {
  * 上のプログラムではさらに\になる。
 */
 
-const test = new Parser('a = 0;{a = a + 1;put a;} while {!(a > 10)}');
-console.log(test.Parse())
-const test2 = new Executer(test.parsed)
-console.log(test2.Execute())
+function test() {
+    const test = new Parser(`
+    # 1から100までの総和を求めるスクリプト
+    i = 0;
+    b = 0;
+    {   
+        i = i + 1;
+        b = b + i;
+        put ("now Count:"+i);
+    } while { !(i >= 100) };
+    put b;
+    `);
+    console.log(test.Parse())
+    const test2 = new Executer(test.parsed)
+    test2.Execute()
+}
+
+class CowaScript {
+    constructor(script) {
+        this.rawScript = script
+        this.parser__ = new Parser();
+        this.parser__.script = this.rawScript;
+
+    }
+    exe() {
+        this.parser__.Parse()
+        const excuter = new Executer(this.parser__.parsed);
+        return excuter.Execute();
+    }
+}
+
+module.exports = CowaScript;
