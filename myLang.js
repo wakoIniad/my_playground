@@ -40,10 +40,45 @@ class Executer {
             '!': {
                 len:1,exe:(a,b)=>!this.val_parse__(a)
             },
+            '>':{
+                len:2,exe:(a,b)=>this.val_parse__(a)>this.val_parse__(b)
+            },
+            '<':{
+                len:2,exe:(a,b)=>this.val_parse__(a)<this.val_parse__(b)
+            },
+            '>=':{
+                len:2,exe:(a,b)=>this.val_parse__(a)>=this.val_parse__(b)
+            },
+            '<=':{
+                len:2,exe:(a,b)=>this.val_parse__(a)<=this.val_parse__(b)
+            },
             '=': {
-                disableParse:true,len:2, exe:(a,b)=> {
+                len:2, exe:(a,b)=> {
                     this.data[a] = this.val_parse__(b);
                     return this.val_parse__(b);
+                }
+            },
+            'if': {
+                len:2, exe:(a,b) => {
+                    if(this.val_parse__(b)) {
+                        return this.val_parse__(a)
+                    }
+                }
+            },
+            'while': {
+                len:2, exe:(a,b) => {
+                    let res;
+                    while(this.val_parse__(b)) {
+                        res = this.val_parse__(a)
+                    }
+                    return res;
+                }
+            },
+            'put': {
+                len:1, exe:(a) => {
+                    let res = this.val_parse__(a);
+                    console.log(res)
+                    return res;
                 }
             }
         }
@@ -95,10 +130,15 @@ class Executer {
         return true;
     }
 
+    /**これは演算子の処理の中でのみ使う */
     val_parse__(text){
         if(text.startsWith('"') && text.endsWith('"')) {
             return text.splice(1,text.length-1);
-        } else if(text in this.valueNames){
+        } else if(text.startsWith('{') && text.endsWith('}')){
+            const parser = new Parser(text.slice(1,text.length-1))
+            parser.Parse();
+            return this.Execute(parser.parsed);
+        }   else if(text in this.valueNames){
             return this.valueNames[text];
         } else if(this.isNumber(text)) {
             return (+text);
@@ -108,10 +148,10 @@ class Executer {
     }
 
     /**Execute per line */
-    Execute() {
+    Execute(process = this.process) {
         let result;
-        for(const i in this.process) {
-            const line = this.process[i];
+        for(const i in process) {
+            const line = process[i];
             result = this.executer__(line)
         }
         return result;
@@ -145,6 +185,9 @@ class Parser {
          * 変数名と解釈して、変数名と統合するかどうか
          */
         this .excutableOperator = {
+            'put': {
+                priority:13
+            },
             '!': {
                 priority:12
             },
@@ -166,9 +209,27 @@ class Parser {
             '-':{
                 priority:9,
             },
+            '>':{
+                priority:8,
+            },
+            '<':{
+                priority:8,
+            },
+            '>=':{
+                priority:8,
+            },
+            '<=':{
+                priority:8,
+            },
             '=': {
                 priority:2
-            }
+            },
+            'if': {
+                priority:1 
+            },
+            'while': {
+                priority:1 
+            },
         }
         this .operatorOnParsing = {
             '(':[],
@@ -450,7 +511,7 @@ class Parser {
  * 上のプログラムではさらに\になる。
 */
 
-const test = new Parser('a+"aa"');
+const test = new Parser('a = 0;{a = a + 1;put a;} while {!(a > 10)}');
 console.log(test.Parse())
 const test2 = new Executer(test.parsed)
-//console.log(test2.Execute())
+console.log(test2.Execute())
