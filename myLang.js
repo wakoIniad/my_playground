@@ -305,6 +305,15 @@ class Parser {
         for(;this.readAt < this.rawText.length; this.readAt++) {
             const c = ""+t[this.readAt];
             switch(c) {
+                case '}':    
+                    strTemp+=c;
+                    pushToken();
+                    mode = null
+
+                    break;
+                case mode === 'block' && c:
+                    strTemp += c;
+                    break;
                 case '\\':
                     if(ignoreFunctionalToken) {
                         strTemp += c;
@@ -325,6 +334,7 @@ class Parser {
                       mode = null
                     } else {
                         scheduledProcessOnSwitchingMode()
+                        pushToken()
                         strTemp+=c;
                         mode = 'string'
                     }
@@ -332,6 +342,15 @@ class Parser {
                 case mode === 'string' && c:
                     strTemp += c;
                     break;
+                
+                case '{':
+                    scheduledProcessOnSwitchingMode()
+                    pushToken();
+                    strTemp+=c;
+                    mode = 'block'
+                    
+                    break;
+                    
                 case ';':
                     this.readAt++;
                     pushToken()
@@ -431,7 +450,7 @@ class Parser {
  * 上のプログラムではさらに\になる。
 */
 
-const test = new Parser('a = 1;a');
+const test = new Parser('a+"aa"');
 console.log(test.Parse())
 const test2 = new Executer(test.parsed)
-console.log(test2.Execute())
+//console.log(test2.Execute())
