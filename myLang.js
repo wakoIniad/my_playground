@@ -11,6 +11,10 @@
 class Executer {
     constructor(rawText) {
         this .rawText = rawText
+
+        this .valueNames = {
+            'true':true,'false':false
+        }
         this .excutableOperator = {
             '**':{  
                 priority:11,
@@ -82,6 +86,68 @@ class Executer {
     }
     displayError() {
 
+    }
+
+    isNumber(text) {
+        let textArr = [...text];
+        let position = 'start'
+        let pointted = false;
+        while(textArr.length) {
+            const c = textArr.shift();
+            if(position === 'first') {
+                if(!'-+0123456789'.includes(c)) return false;
+                position = 'middle'
+            } else if(position === 'middle') {
+                if(!'0123456789'.includes(c)) {
+                    if(!pointted && c == '.') {
+                        pointted = true;
+                    } else {
+                        return false
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    isVariable(text) {
+        let textArr = [...text]
+        let position = 'start'
+        while(textArr.length) {
+            const c = text.shift()
+            if(65 < c.charCodeAt() && 122 > c.charCodeAt()) {
+                if(position === 'start' )position = 'middle';
+            } else if(position !== 'start') {
+                if(!'0123456789'.includes(c)) return false;
+            } else return false;
+        }
+    }
+
+    val_parse__(text){
+        if(text.startsWith('"') && text.endsWith('"')) {
+            return text.splice(1,text.length-1);
+        } else if(text in this.valueNames){
+            return this.valueNames[text];
+        } else if(this.isNumber(text)) {
+            return +text;
+        } else if(this.isVariable)
+    }
+
+    Execute(arr) {
+        const stack = [];
+        const result = [];
+        for(const i in arr) {
+            const e = arr[i];
+            if(e in this.excutableOperator) {
+                const operatorClass = this.excutableOperator[e]
+                const requiredArgsLen = operatorClass.len;
+                const args = this.stack.splice(this.stack.length-requiredArgsLen)
+                stack.push(operatorClass.exe(args))
+            } else {
+                stack.push(this.val_parse__(e))
+            }
+        }
+        return stack.pop();
     }
 
     Parse() {
