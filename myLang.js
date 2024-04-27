@@ -12,10 +12,12 @@ class Executer {
     constructor(rawText) {
         this .rawText = rawText
         this .excutableOperator = {
-            '+':{priority:10},
-            '-':{priority:10},
-            '*':{priority:9},
-            '/':{priority:9},
+            '**':{priority:11},
+            '*':{priority:10},
+            '/':{priority:10},
+            '%':{priority:11},
+            '+':{priority:9},
+            '-':{priority:9},
         }
         this .operatorOnParsing = {
             '(':[],
@@ -30,18 +32,26 @@ class Executer {
     to_reversed_poland__(arr) {
         let stack = [];
         const result = [];
+
+        function makeResult() { 
+            stack.reverse();
+            result.push(...stack);
+            return result;
+        }
+        
         while(arr.length) {
             const e = arr.shift();
-            const lastStack = stack[stack.length-1];
             if(e == '(') {
                 result.push(...this.to_reversed_poland__(arr));
             } else if(e == ')') {
-                return result;
+                return makeResult();
             } else {
-                if(this.operatorTokens.includes(e)) {
-                    if(this.excutableOperator[lastStack].priority <= 
+                if(e in this.excutableOperator) {
+                    const lastStack = stack[stack.length-1];
+                    if(lastStack && this.excutableOperator[lastStack].priority >= 
                         this.excutableOperator[e].priority) {
                             result.push(stack.pop())
+                            stack.push(e)
                     } else {
                         stack.push(e);
                     }
@@ -50,8 +60,7 @@ class Executer {
                 }
             }
         }
-        stack.reverse();
-        result.push(...stack);
+        return makeResult();
     }
     displayError() {
 
@@ -73,24 +82,26 @@ class Executer {
         for(const i in arr) {
             const e = arr[i];
             let res_element = e;
-            if( e === '+' || e === '-' ) {
+            if( e in this.excutableOperator ) {
                 //2回以上連続で加算/減算演算子が出てきたら符号として扱う
                 if(regardAsSign) {
-                    if(sign === null) {
-                        switch(e) {
-                            case '+':
-                                sign = true;
-                                break;
-                            case '-':
-                                sign = false;
-                                break;
+                    if(e === '+' || e === '-') {
+                        if(sign === null) {
+                            switch(e) {
+                                case '+':
+                                    sign = true;
+                                    break;
+                                case '-':
+                                    sign = false;
+                                    break;
+                            }
+                        } else {
+                            if(e === '-') {
+                                sign = !sign;
+                            }
                         }
-                    } else {
-                        if(e === '-') {
-                            sign = !sign;
-                        }
+                        res_element = ''
                     }
-                    res_element = ''
                 } else {
                     regardAsSign = true;
                 }
@@ -212,5 +223,5 @@ class Executer {
 }
 
 /** */
-const test = new Executer('1+ + +- - + -1**2');
+const test = new Executer('(1 + 1)-4 * 2 **- 3');
 console.log(test.Parse())
