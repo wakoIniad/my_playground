@@ -10,31 +10,58 @@
 class Executer {
     constructor(rawText) {
         this .rawText = rawText
-        this .calcOperator = {
-            '+':[],
-            '-':[],
-            '*':[],
-            '/':[],
+        this .excutableOperator = {
+            '+':{priority:10},
+            '-':{priority:10},
+            '*':{priority:9},
+            '/':{priority:9},
         }
-        this .operator = {
+        this .operatorOnParsing = {
             '(':[],
             ')':[]
         }
         this .operatorTokens = [
-            ...Object.keys(this.operator),
-            ...Object.keys(this.calcOperator)
+            ...Object.keys(this.excutableOperator),
+            ...Object.keys(this.operatorOnParsing)
         ]
         this .splitted = [];
     }
-    textToReversedPoland(text) {
-        splitter(text)
+    to_reversed_poland__(arr) {
+        let stack = [];
+        const result = [];
+        while(arr.length) {
+            const e = arr.shift();
+            const lastStack = stack[stack.length-1];
+            if(e == '(') {
+                result.push(...this.to_reversed_poland__(arr));
+            } else if(e == ')') {
+                return result;
+            } else {
+                if(this.operatorTokens.includes(e)) {
+                    if(this.excutableOperator[lastStack].priority <= 
+                        this.excutableOperator[e].priority) {
+                            result.push(stack.pop())
+                    } else {
+                        stack.push(e);
+                    }
+                } else {
+                    result.push(e);
+                }
+            }
+        }
+        stack.reverse();
+        result.push(...stack);
     }
     displayError() {
 
     }
 
-    Split() {
-        return this.splitted = this.splitter_reviser__(this.splitter__(this.rawText));
+    Parse() {
+        return this.to_reversed_poland__(this.split__(this.rawText))
+    }
+
+    split__(text) {
+        return this.splitted = this.splitter_reviser__(this.splitter__(text));
     }
 
     //スネークケースで最後に__がついてたら内部用関数
@@ -62,6 +89,7 @@ class Executer {
                             sign = !sign;
                         }
                     }
+                    res_element = ''
                 } else {
                     regardAsSign = true;
                 }
@@ -73,7 +101,7 @@ class Executer {
                     sign = null;
                 }
             }
-            result.push(res_element)
+            if(res_element)result.push(res_element)
         }
         return result;
     }
@@ -84,6 +112,8 @@ class Executer {
         let strTemp = "";
         let opTemp = "";
         let mode = null
+        //英語復習メモ：前置詞の後にto不定詞は来ない
+        let scheduledProcessOnSwitchingMode = () => {}
 
         function pushToken() {
             if(strTemp.length) {
@@ -102,6 +132,7 @@ class Executer {
                       pushToken()
                       mode = null
                     } else {
+                        scheduledProcessOnSwitchingMode()
                         strTemp+=c;
                         mode = 'string'
                     }
@@ -129,6 +160,7 @@ class Executer {
                     } else if(mode === 'number') {
                         strTemp += c;
                     } else {
+                        scheduledProcessOnSwitchingMode()
                         pushToken();
                         mode = 'number';
                         strTemp += c;
@@ -140,9 +172,13 @@ class Executer {
                     } else if(mode === 'operator') {
                         strTemp += c;
                     } else {
+                        scheduledProcessOnSwitchingMode()
                         pushToken();
                         strTemp += c;
                     }
+
+                    // #連続した演算子が入力された場合細切れにしていく
+                    //=すでにカットした部分は消す！
                     if(this.operatorTokens.includes(strTemp)) {
                         //現時点のものがokなら保存しておく
                         opTemp = strTemp
@@ -150,27 +186,19 @@ class Executer {
                         //okじゃなくなった瞬間に以前に保存した
                         //大丈夫なオペレータがあればそれをプッシュする
                         if(opTemp) {
+                            //新しいパートを始める
                             strTemp = c;
                             arrTemp.push(opTemp);
                             opTemp = "";
                             if(this.operatorTokens.includes(strTemp)) {
                                 opTemp = strTemp
                             } else {
-                                //なければエラー
-                                /*prob1_1 問題点：例えば @=という演算子があるうえで、@という演算子がない場合、
-                                エラーになってしまう。修正必須
-                                修正案：演算子が存在しない場合でも最初はそのままopTemoに追加し、
-                                演算子ではなく数値などの別の要素が出てきたときに
-                                保存されている演算子が存在しなければエラーを出す。
-                                */
-                                //this.displayError();
+                                /*prob2_1 パース終了時点で存在しない演算子がいないように
+                                どこかにエラー処理作る**/
                             }
-                            //なければエラー 2
-                            /*prob1_2 同様の問題点：例えば @=という演算子があるうえで、@という演算子がない場合、
-                            エラーになってしまう。修正必須
-                            */
                         } else {
-                            //this.displayError()
+                            /*prob2_2 パース終了時点で存在しない演算子がいないように
+                            どこかにエラー処理作る**/
                         }
                     }
                     mode = 'operator';
@@ -183,5 +211,5 @@ class Executer {
 }
 
 /** */
-const test = new Executer('1+ + + - - + -1**2');
-console.log(test.Split())
+const test = new Executer('1+ + +- - + -1**2');
+console.log(test.Parse())
