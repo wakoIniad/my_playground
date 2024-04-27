@@ -5,13 +5,17 @@
  * エラーを出力する関数が未定義
  * 
  * 個別の問題点：
- * prob1_1,prob1_2: 演算子が空白無しで連続で書かれた場合などへの対応
+ * trueやfalseなどの変数への統合の是非
  */
 
 class Executer {
     constructor(rawText) {
         this .rawText = rawText
 
+        /**
+         * prob3
+         * 変数名と解釈して、変数名と統合するかどうか
+         */
         this .valueNames = {
             'true':true,'false':false
         }
@@ -50,6 +54,8 @@ class Executer {
             ...Object.keys(this.operatorOnParsing)
         ]
         this .splitted = [];
+
+        this.data = {};
     }
     to_reversed_poland__(arr) {
         let stack = [];
@@ -110,12 +116,15 @@ class Executer {
         return true;
     }
 
+    isCharacterForName(c) {
+        return 65 < c.charCodeAt() && 122 > c.charCodeAt() || '_$'.includes(c)
+    }
     isVariable(text) {
         let textArr = [...text]
         let position = 'start'
         while(textArr.length) {
             const c = text.shift()
-            if(65 < c.charCodeAt() && 122 > c.charCodeAt()) {
+            if(65 < c.charCodeAt() && 122 > c.charCodeAt() || '_$'.includes(c)) {
                 if(position === 'start' )position = 'middle';
             } else if(position !== 'start') {
                 if(!'0123456789'.includes(c)) return false;
@@ -130,7 +139,9 @@ class Executer {
             return this.valueNames[text];
         } else if(this.isNumber(text)) {
             return +text;
-        } else if(this.isVariable)
+        } else if(this.isVariable) {
+            return this.data[text]
+        }
     }
 
     Execute(arr) {
@@ -263,8 +274,24 @@ class Executer {
                         /* this.displayError() **/
                     }
                     break;
-                case '0123456789'.includes(c) && c:
+                
+                case this.isCharacterForName(c) && c:
                     if(mode === null) {
+                        mode = 'name'
+                        strTemp += c;
+                    } else if(mode === 'name') {
+                        strTemp += c;
+                    } else {
+                        scheduledProcessOnSwitchingMode()
+                        pushToken();
+                        mode = 'name';
+                        strTemp += c;
+                    }
+                    break;
+                case '0123456789'.includes(c) && c:
+                    if(mode === 'name') {
+                        strTemp += c
+                    } else if(mode === null) {
                         mode = 'number'
                         strTemp += c;
                     } else if(mode === 'number') {
@@ -330,5 +357,5 @@ class Executer {
  * 上のプログラムではさらに\になる。
 */
 
-const test = new Executer('(1 + 1)-4 * 2 **- 3 + "aaaa \\"bbb"');
+const test = new Executer('true1+1 1 + 1');
 console.log(test.Parse())
