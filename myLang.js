@@ -3,56 +3,49 @@
  * 問題点リスト
  * 全体的な問題点：
  * エラーを出力する関数が未定義
+ * <重大>関数の引数にょみ取り方
+ * ：後々実装予定のリスト型と名前型を引数として'演算'した場合に、
+ * その名前の関数に指定された引数（リスト）を渡して実行する
  * 
  * 個別の問題点：
  * prob3. trueやfalseなどの変数への統合の是非
  */
 
-class Line {
-    constructor(text,ref) {
-        this.parsed = [];
-        this.ref = []
-    }
-
-}
-
 class Executer {
-    constructor(rawText) {
-        this .rawText = rawText
-        this .readAt = 0;
-
-        /**
-         * prob3
-         * 変数名と解釈して、変数名と統合するかどうか
-         */
+    constructor(process) {
+        this.process = process;
+        
         this .valueNames = {
             'true':true,'false':false
         }
         this .excutableOperator = {
             '**':{  
-                priority:11,
-                len:2,exe:(a,b)=>a**b
+                len:2,exe:(a,b)=>this.val_parse__(a)**this.val_parse__(b)
             },
             '*':{
-                priority:10,
-                len:2,exe:(a,b)=>a*b
+                len:2,exe:(a,b)=>this.val_parse__(a)*this.val_parse__(b)
             },
             '/':{
-                priority:10,
-                len:2,exe:(a,b)=>a/b
+                len:2,exe:(a,b)=>this.val_parse__(a)/this.val_parse__(b)
             },
             '%':{
-                priority:11,
-                len:2,exe:(a,b)=>a%b
+                len:2,exe:(a,b)=>this.val_parse__(a)%this.val_parse__(b)
             },
             '+':{
-                priority:9,
-                len:2,exe:(a,b)=>a+b
+                len:2,exe:(a,b)=>this.val_parse__(a)+this.val_parse__(b)
             },
             '-':{
-                priority:9,
-                len:2,exe:(a,b)=>a-b
+                len:2,exe:(a,b)=>this.val_parse__(a)-this.val_parse__(b)
             },
+            '!': {
+                len:1,exe:(a,b)=>!this.val_parse__(a)
+            },
+            '=': {
+                disableParse:true,len:2, exe:(a,b)=> {
+                    this.data[a] = this.val_parse__(b);
+                    return this.val_parse__(b);
+                }
+            }
         }
         this .operatorOnParsing = {
             '(':[],
@@ -63,12 +56,139 @@ class Executer {
             ...Object.keys(this.excutableOperator),
             ...Object.keys(this.operatorOnParsing)
         ]
-        this .splitted = [];
+
+        this .data = {};
+    }
+    isNumber(text) {
+        let textArr = [...text];
+        let position = 'first'
+        let pointted = false;
+        while(textArr.length) {
+            const c = textArr.shift();
+            if(position === 'first') {
+                if(!'-+0123456789'.includes(c)) return false;
+                position = 'middle'
+            } else if(position === 'middle') {
+                if(!'0123456789'.includes(c)) {
+                    if(!pointted && c == '.') {
+                        pointted = true;
+                    } else {
+                        return false
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    isVariable(text) {
+        let textArr = [...text]
+        let position = 'start'
+        while(textArr.length) {
+            const c = textArr.shift()
+            if(65 < c.charCodeAt() && 122 > c.charCodeAt() || '_$'.includes(c)) {
+                if(position === 'start' )position = 'middle';
+            } else if(position !== 'start') {
+                if(!'0123456789'.includes(c)) return false;
+            } else return false;
+        }
+        return true;
+    }
+
+    val_parse__(text){
+        if(text.startsWith('"') && text.endsWith('"')) {
+            return text.splice(1,text.length-1);
+        } else if(text in this.valueNames){
+            return this.valueNames[text];
+        } else if(this.isNumber(text)) {
+            return (+text);
+        } else if(this.isVariable(text)) {
+            return this.data[text]
+        }
+    }
+
+    /**Execute per line */
+    Execute() {
+        let result;
+        for(const i in this.process) {
+            const line = this.process[i];
+            result = this.executer__(line)
+        }
+        return result;
+    }
+
+    executer__(arr) {
+        const stack = [];
+        for(const i in arr) {
+            const e = arr[i];
+            if(e in this.excutableOperator) {
+                const operatorClass = this.excutableOperator[e]
+                const requiredArgsLen = operatorClass.len;
+                const args = stack.splice(stack.length-requiredArgsLen)
+                /**nameが返ってくることは想定していない */
+                stack.push(JSON.stringify(operatorClass.exe(...args)))
+            } else {
+                stack.push(e)
+            }
+        }
+        return this.val_parse__(stack.pop());
+    }
+}
+
+class Parser {
+    constructor(rawText) {
+        this .rawText = rawText
+        this .readAt = 0;
+
+        /**
+         * prob3
+         * 変数名と解釈して、変数名と統合するかどうか
+         */
+        this .excutableOperator = {
+            '!': {
+                priority:12
+            },
+            '**':{  
+                priority:11,
+            },
+            '*':{
+                priority:10,
+            },
+            '/':{
+                priority:10,
+            },
+            '%':{
+                priority:11,
+            },
+            '+':{
+                priority:9,
+            },
+            '-':{
+                priority:9,
+            },
+            '=': {
+                priority:2
+            }
+        }
+        this .operatorOnParsing = {
+            '(':[],
+            ')':[],
+            ';':[]
+        }
+        this .operatorTokens = [
+            ...Object.keys(this.excutableOperator),
+            ...Object.keys(this.operatorOnParsing)
+        ]
 
         this .parsed = [];
 
         this .data = {};
     }
+
+    isCharacterForName(c) {
+        return 65 < c.charCodeAt() && 122 > c.charCodeAt() || '_$'.includes(c)
+    }
+    
     to_reversed_poland__(arr) {
         let stack = [];
         const result = [];
@@ -102,82 +222,12 @@ class Executer {
         }
         return makeResult();
     }
-    displayError() {
+
+    displayParserError() {
 
     }
 
-    isNumber(text) {
-        let textArr = [...text];
-        let position = 'start'
-        let pointted = false;
-        while(textArr.length) {
-            const c = textArr.shift();
-            if(position === 'first') {
-                if(!'-+0123456789'.includes(c)) return false;
-                position = 'middle'
-            } else if(position === 'middle') {
-                if(!'0123456789'.includes(c)) {
-                    if(!pointted && c == '.') {
-                        pointted = true;
-                    } else {
-                        return false
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
-    isCharacterForName(c) {
-        return 65 < c.charCodeAt() && 122 > c.charCodeAt() || '_$'.includes(c)
-    }
-    isVariable(text) {
-        let textArr = [...text]
-        let position = 'start'
-        while(textArr.length) {
-            const c = text.shift()
-            if(65 < c.charCodeAt() && 122 > c.charCodeAt() || '_$'.includes(c)) {
-                if(position === 'start' )position = 'middle';
-            } else if(position !== 'start') {
-                if(!'0123456789'.includes(c)) return false;
-            } else return false;
-        }
-    }
-
-    val_parse__(text){
-        if(text.startsWith('"') && text.endsWith('"')) {
-            return text.splice(1,text.length-1);
-        } else if(text in this.valueNames){
-            return this.valueNames[text];
-        } else if(this.isNumber(text)) {
-            return (+text);
-        } else if(this.isVariable) {
-            return this.data[text]
-        }
-    }
-
-    Execute() {
-        for(const i in this.parsed) {
-            const line = this.parsed[i];
-            console.log(this.executer__(line))
-        }
-    }
-
-    executer__(arr) {
-        const stack = [];
-        for(const i in arr) {
-            const e = arr[i];
-            if(e in this.excutableOperator) {
-                const operatorClass = this.excutableOperator[e]
-                const requiredArgsLen = operatorClass.len;
-                const args = stack.splice(stack.length-requiredArgsLen)
-                stack.push(operatorClass.exe(...args))
-            } else {
-                stack.push(this.val_parse__(e))
-            }
-        }
-        return stack.pop();
-    }
+    
 
     Parse() {
         this.parsed = []
@@ -188,7 +238,7 @@ class Executer {
     }
 
     split__(text) {
-        return this.splitted = this.splitter_reviser__(this.splitter__(text));
+        return this.splitter_reviser__(this.splitter__(text));
     }
 
     //スネークケースで最後に__がついてたら内部用関数
@@ -296,7 +346,7 @@ class Executer {
                     } else if(mode === 'name') {
 
                     } else {
-                        /* this.displayError() **/
+                        /* this.displayParserError() **/
                     }
                     break;
                 
@@ -381,6 +431,7 @@ class Executer {
  * 上のプログラムではさらに\になる。
 */
 
-const test = new Executer('1+1+1 * 4;1*3');
-test.Parse()
-console.log(test.Execute())
+const test = new Parser('a = 1;a');
+console.log(test.Parse())
+const test2 = new Executer(test.parsed)
+console.log(test2.Execute())
