@@ -1,4 +1,3 @@
-
 class Executer {
     constructor(process) {
         this.process = process;
