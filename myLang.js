@@ -72,7 +72,7 @@ class Executer {
                     return res;
                 }
             },
-            'read': {
+            'readAs': {
                 len:2, exe:(a,b)=> {
                     this.data[b] = a;
                     return b;
@@ -197,7 +197,7 @@ class Parser {
          * 変数名と解釈して、変数名と統合するかどうか
          */
         this .excutableOperator = {
-            'read': {
+            'readAs': {
                 priority:13
             },
             'put': {

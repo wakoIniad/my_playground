@@ -43,7 +43,7 @@ const sample4 = `
 #関数もどきの実行例
 sum_1_to_n = {
 #スタックから読み取って指定した名前で保存。
-read(n);
+readAs(n);
 i = 0;
 result = 0;
 {i = (i + 1);result = (result + i);} while { !(i >= n) };
