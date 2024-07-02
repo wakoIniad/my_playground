@@ -7,6 +7,9 @@ class Executer {
             'true':true,'false':false
         }
         this .excutableOperator = {
+            '>>':{
+                len:2,exe:(a,b)=> this.val_parse__(b,a)
+            },
             '**':{  
                 len:2,exe:(a,b)=>this.val_parse__(a)**this.val_parse__(b)
             },
@@ -67,6 +70,12 @@ class Executer {
                     let res = this.val_parse__(a);
                     console.log(JSON.stringify(res))
                     return res;
+                }
+            },
+            'readAs': {
+                len:2, exe:(a,b)=> {
+                    this.data[b] = a;
+                    return b;
                 }
             }
         }
@@ -129,13 +138,14 @@ class Executer {
     }
 
     /**これは演算子の処理の中でのみ使う */
-    val_parse__(text){
+    val_parse__(text,...args){
         if(text.startsWith('"') && text.endsWith('"')) {
             return text.slice(1,text.length-1);
         } else if(text.startsWith('{') && text.endsWith('}')){
             const parser = new Parser(text.slice(1,text.length-1))
             parser.Parse();
-            return this.Execute(parser.parsed);
+            
+            return this.Execute(parser.parsed,...args);
         }   else if(text in this.valueNames){
             return this.valueNames[text];
         } else if(this.isNumber(text)) {
@@ -143,23 +153,23 @@ class Executer {
         } else if(this.isVariable(text)) {
             const val = this.data[text];
             if(val === undefined)this.displayExcuterError(0,text)
-            return this.val_parse__(val);
+            return this.val_parse__(val,...args);
         }
     }
 
     /**Execute per line */
-    Execute(process = this.process) {
+    Execute(process = this.process,...args) {
         let result;
         for(const i in process) {
             const line = process[i];
-            result = this.executer__(line)
+            result = this.executer__(line,...args)
             this.readLineAt = i
         }
         return result;
     }
 
-    executer__(arr) {
-        const stack = [];
+    executer__(arr,...optionalArgs) {
+        const stack = [...optionalArgs];
         for(const i in arr) {
             this.readWordAt = i
             const e = arr[i];
@@ -187,6 +197,9 @@ class Parser {
          * 変数名と解釈して、変数名と統合するかどうか
          */
         this .excutableOperator = {
+            'readAs': {
+                priority:13
+            },
             'put': {
                 priority:13
             },
@@ -226,12 +239,15 @@ class Parser {
             '=': {
                 priority:2
             },
+            ">>": {
+                priority:2
+            },
             'if': {
                 priority:1 
             },
             'while': {
                 priority:1 
-            },
+            }
         }
         this .operatorOnParsing = {
             '(':[],
