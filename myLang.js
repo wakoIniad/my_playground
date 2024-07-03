@@ -72,8 +72,9 @@ class Executer {
                     return res;
                 }
             },
-            'readAs': {
+            'readas': {
                 len:2, exe:(a,b)=> {
+                    console.log(a,b)
                     this.data[b] = a;
                     return b;
                 }
@@ -197,7 +198,7 @@ class Parser {
          * 変数名と解釈して、変数名と統合するかどうか
          */
         this .excutableOperator = {
-            'readAs': {
+            'readas': {
                 priority:13
             },
             'put': {
@@ -388,22 +389,52 @@ class Parser {
                 strTemp = ""
             }
         }
+
+        let blockDepth = 0;
+        /**一時的:仮変数 */
+        let strInBlock = false;
+        let escapeInBlock = false;
+
         for(;this.readAt < this.rawText.length; this.readAt++) {
             const c = ""+t[this.readAt];
+            let lastEscaped = false;
+            if(escapeInBlock) {
+                escapeInBlock = false;
+                lastEscaped = true;
+            }
+            if(ignoreFunctionalToken) {
+                ignoreFunctionalToken = false;
+                lastEscaped = true;
+            }
             switch(c) {
                 case '}':    
                     strTemp+=c;
-                    pushToken();
-                    mode = null
-
+                    //pushToken();
+                    //mode = null
+                    if(!strInBlock)blockDepth--;
+                    if(blockDepth === 0) {
+                        pushToken();
+                        mode = null;
+                    }
                     break;
                 case mode === 'block' && c:
+                    if(c === "{") {
+                        blockDepth++;
+                    }
+                    if(!lastEscaped) {
+                        if(c==='"') {
+                            strInBlock = !strInBlock;
+                        }
+                    }
+                    if(c === "\\" && !lastEscaped) {
+                        escapeInBlock = true;
+                    }
+                    //再帰的に処理するので、ここでは判定のみで判定結果にかかわらずすべて追加する
                     strTemp += c;
                     break;
                 case '\\':
-                    if(ignoreFunctionalToken) {
+                    if(lastEscaped) {
                         strTemp += c;
-                        ignoreFunctionalToken = false;
                         break;
                     }
                     ignoreFunctionalToken = true;
@@ -434,7 +465,7 @@ class Parser {
                     pushToken();
                     strTemp+=c;
                     mode = 'block'
-                    
+                    blockDepth++;
                     break;
                 case '\n':
                     if(ignoreFunctionalToken) {
@@ -558,3 +589,12 @@ class CowaScript {
 }
 
 module.exports = CowaScript;
+
+
+
+/**
+ * 
+ * 超重要：
+ *
+ * 文字列の中にある場合、ブロック型の対応を変更！！
+ */
