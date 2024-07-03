@@ -1,4 +1,5 @@
 class Executer {
+
     constructor(process) {
         this.process = process;
         this.readLineAt = 0;
