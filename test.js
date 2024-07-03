@@ -37,7 +37,7 @@ result = (result + i);
 result;
 };
 #funcの実行時のスタックに左のオペラントを追加
-put(100 >> sum_1_to_n);
+put("result:"+(100 >> sum_1_to_n));
 `
 const cowaScript = new CowaScript(sample4);
 cowaScript.exe()
