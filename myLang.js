@@ -74,7 +74,6 @@ class Executer {
             },
             'readas': {
                 len:2, exe:(a,b)=> {
-                    console.log(a,b)
                     this.data[b] = a;
                     return b;
                 }
