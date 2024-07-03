@@ -21,5 +21,53 @@ put (a);
 func;
 put (a);
 `
-const cowaScript = new CowaScript(sample1);
+
+
+const sample3 = `
+#関数もどきの実行例
+sum_1_to_n = {
+#スタックから読み取って指定した名前で保存。
+read(n);
+i = 1;
+result = 0;
+{
+result = result + i;
+i = i + 1;
+} while { !(i >= n) };
+};
+#funcの実行時のスタックに左のオペラントを追加
+put(1 >> func);
+`
+
+const sample4 = `
+#関数もどきの実行例
+sum_1_to_n = {
+#スタックから読み取って指定した名前で保存。
+readas(n);
+i = 0;
+put(n);
+result = 0;
+{
+i = (i + 1);
+result = (result + i);
+} while { !(i >= n) };
+result;
+};
+#funcの実行時のスタックに左のオペラントを追加
+put(100 >> sum_1_to_n);
+`
+const test1 = `
+i = 1;
+a = {
+put(i);
+j = 1;
+put(j);
+b = {
+put(j);
+};
+b;
+};
+a;
+`
+const cowaScript = new CowaScript(sample4);
 cowaScript.exe()
